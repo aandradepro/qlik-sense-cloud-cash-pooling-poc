@@ -691,5 +691,98 @@ Rationale:
 DROP TABLE Fact_Cash_Position;
 RENAME TABLE Fact_Cash_Position_Converted TO Fact_Cash_Position;
 
+/******************************************************************************************
+ *
+ * VERSION 6 – CASH POOLING CONSOLIDATION
+ *
+ * Scope:
+ * - Implement cash consolidation logic
+ * - Support group-level treasury analysis
+ * - Preserve detail and auditability
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  9. CONSOLIDATION LOGIC
+==============================================================================*/
+
+/*
+Decision:
+Implement consolidation through dimensional hierarchy,
+not by pre-aggregating or collapsing the fact table.
+
+Rationale:
+- Preserves analytical flexibility
+- Supports both legal entity and group views
+- Reflects real treasury operating models
+*/
+
+
+/*------------------------------------------------------------------------------
+  9.1 Prepare Company-to-Holding Mapping
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Create a mapping table to associate each company with its holding.
+
+Rationale:
+- Simplifies consolidation logic
+- Avoids complex joins in the fact table
+- Keeps hierarchy governance centralized
+*/
+
+Company_To_Holding_Map:
+MAPPING LOAD
+    company_code,
+    IF(LEN(TRIM(parent_company)) > 0, parent_company, company_code)
+        AS holding_company
+RESIDENT Dim_Company;
+
+
+/*
+Decision:
+If a company has no parent, it is considered its own holding.
+
+Rationale:
+- Simplifies logic
+- Avoids NULL handling downstream
+*/
+
+
+/*------------------------------------------------------------------------------
+  9.2 Enrich Fact Table with Holding Company
+------------------------------------------------------------------------------*/
+
+Fact_Cash_Position_Consolidated:
+LOAD
+    *,
+
+    ApplyMap(
+        'Company_To_Holding_Map',
+        company_code,
+        company_code
+    ) AS holding_company
+
+RESIDENT Fact_Cash_Position;
+
+
+/*------------------------------------------------------------------------------
+  9.3 Replace Original Fact Table
+------------------------------------------------------------------------------*/
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Consolidated TO Fact_Cash_Position;
+
+
+/*
+Decision:
+Do not aggregate consolidated values at ETL level.
+
+Rationale:
+- Allows dynamic consolidation in analysis
+- Avoids double-counting risks
+- Supports flexible reporting scopes
+*/
 
 
