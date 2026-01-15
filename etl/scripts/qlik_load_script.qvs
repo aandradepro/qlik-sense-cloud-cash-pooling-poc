@@ -358,3 +358,127 @@ Next steps will introduce:
 - Fact table creation
 - Currency conversion logic
 */
+
+/******************************************************************************************
+ *
+ * FISCAL CALENDAR DIMENSION
+ *
+ * Scope:
+ * - Create a governed fiscal calendar dimension (Dim_Calendar)
+ * - Support time-based treasury analysis
+ * - Enable MoM and YoY comparisons
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  6. FISCAL CALENDAR DIMENSION
+==============================================================================*/
+
+/*
+Decision:
+Create an explicit fiscal calendar dimension derived from fact data.
+
+Rationale:
+- Avoids hardcoding date ranges
+- Ensures calendar aligns exactly with available data
+- Is a best practice in enterprise analytics
+*/
+
+
+/*------------------------------------------------------------------------------
+  6.1 Determine Calendar Range
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Derive the calendar range from the cash position fact raw data.
+
+Rationale:
+- Guarantees full coverage of the dataset
+- Prevents unused calendar periods
+*/
+
+Temp_CalendarRange:
+LOAD
+    Min(MakeDate(fiscal_year, fiscal_month, 1)) AS min_date,
+    Max(MakeDate(fiscal_year, fiscal_month, 1)) AS max_date
+RESIDENT CashPosition_Raw;
+
+
+LET vMinDate = Num(Peek('min_date', 0, 'Temp_CalendarRange'));
+LET vMaxDate = Num(Peek('max_date', 0, 'Temp_CalendarRange'));
+
+DROP TABLE Temp_CalendarRange;
+
+
+/*------------------------------------------------------------------------------
+  6.2 Generate Calendar Dates
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Generate calendar at the monthly grain.
+
+Rationale:
+- Aligns with treasury reporting cycles
+- Matches the grain of the fact table
+- Avoids unnecessary daily-level data
+*/
+
+Temp_Calendar:
+LOAD
+    Date($(vMinDate) + IterNo() - 1) AS calendar_date
+AUTOGENERATE 1
+WHILE $(vMinDate) + IterNo() - 1 <= $(vMaxDate);
+
+
+/*------------------------------------------------------------------------------
+  6.3 Build Governed Calendar Dimension
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Expose both numeric and descriptive time attributes.
+
+Rationale:
+- Supports flexible filtering and grouping
+- Enables executive-friendly dashboards
+*/
+
+Dim_Calendar:
+LOAD
+    calendar_date,
+    Year(calendar_date)                          AS fiscal_year,
+    Month(calendar_date)                         AS fiscal_month_name,
+    Month(calendar_date)                         AS fiscal_month,
+    Num(Month(calendar_date))                    AS fiscal_month_number,
+    Date(MonthStart(calendar_date), 'YYYY-MM')   AS fiscal_year_month,
+    'FY' & Year(calendar_date)                   AS fiscal_year_label
+RESIDENT Temp_Calendar;
+
+
+/*------------------------------------------------------------------------------
+  6.4 Cleanup Temporary Tables
+------------------------------------------------------------------------------*/
+
+DROP TABLE Temp_Calendar;
+
+
+/*
+Decision:
+Keep calendar attributes simple and transparent.
+
+Rationale:
+- PoC focus is analytics and governance, not calendar complexity
+- Fiscal year = calendar year by design (documented assumption)
+*/
+
+
+/*
+End of Version 3.
+Next steps will introduce:
+- Fact table creation (Fact_Cash_Position)
+- Currency conversion logic
+*/
+
+
