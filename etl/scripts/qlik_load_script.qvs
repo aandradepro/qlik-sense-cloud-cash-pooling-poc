@@ -473,12 +473,126 @@ Rationale:
 - Fiscal year = calendar year by design (documented assumption)
 */
 
+/******************************************************************************************
+ *
+ * GOVERNED FACT TABLE
+ *
+ * Scope:
+ * - Create Fact_Cash_Position
+ * - Preserve monthly grain
+ * - Prepare for currency conversion and consolidation
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  7. GOVERNED FACT – CASH POSITION
+==============================================================================*/
 
 /*
-End of Version 3.
-Next steps will introduce:
-- Fact table creation (Fact_Cash_Position)
-- Currency conversion logic
+Decision:
+Create a single governed fact table representing cash position
+for both Pre and Post Cash Pooling scenarios.
+
+Rationale:
+- Enables direct comparison between scenarios
+- Avoids duplicated fact structures
+- Simplifies analytical consumption
 */
 
+
+/*------------------------------------------------------------------------------
+  7.1 Fact Table Creation
+------------------------------------------------------------------------------*/
+
+Fact_Cash_Position:
+LOAD
+    /*==============================
+      Keys and Grain Definition
+    ==============================*/
+    company_code,
+    country,
+    cost_center,
+
+    /*==============================
+      Time Attributes
+    ==============================*/
+    fiscal_year,
+    fiscal_month,
+    Date(MakeDate(fiscal_year, fiscal_month, 1), 'YYYY-MM') AS fiscal_year_month,
+
+    /*==============================
+      Scenario
+    ==============================*/
+    pooling_scenario,
+
+    /*==============================
+      Currency
+    ==============================*/
+    currency,
+
+    /*==============================
+      Monetary Measures (Local Currency)
+    ==============================*/
+    opening_balance,
+    cash_in,
+    cash_out,
+    closing_balance
+
+RESIDENT CashPosition_Raw;
+
+
+/*
+Decision:
+Do not aggregate or calculate balances at this stage.
+
+Rationale:
+- Keeps fact table flexible
+- Supports multiple aggregation strategies
+- Avoids premature optimization
+*/
+
+
+/*------------------------------------------------------------------------------
+  7.2 Fact Table Validation Fields (Optional)
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Include explicit record-level flags to support validation and reconciliation.
+
+Rationale:
+- Facilitates PoC testing
+- Helps explain data quality concepts in portfolio discussions
+*/
+
+Fact_Cash_Position_Validated:
+LOAD
+    *,
+    IF(
+        opening_balance + cash_in - cash_out = closing_balance,
+        1,
+        0
+    ) AS balance_check_flag
+RESIDENT Fact_Cash_Position;
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Validated TO Fact_Cash_Position;
+
+
+/*------------------------------------------------------------------------------
+  7.3 Preparation for Future Enhancements
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Keep currency and company keys explicitly in the fact.
+
+Rationale:
+- Required for upcoming currency conversion
+- Required for hierarchical consolidation
+- Avoids rework later in the pipeline
+*/
+
+
+/*
 
