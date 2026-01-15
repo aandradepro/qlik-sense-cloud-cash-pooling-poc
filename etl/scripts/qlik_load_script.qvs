@@ -591,8 +591,105 @@ Rationale:
 - Required for upcoming currency conversion
 - Required for hierarchical consolidation
 - Avoids rework later in the pipeline
+
+/******************************************************************************************
+ *
+ * CURRENCY CONVERSION
+ *
+ * Scope:
+ * - Convert monetary values from local currency to group reporting currency
+ * - Centralize exchange rate governance in ETL
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  8. CURRENCY CONVERSION LOGIC
+==============================================================================*/
+
+/*
+Decision:
+Perform currency conversion during ETL instead of in the dashboard.
+
+Rationale:
+- Improves dashboard performance
+- Ensures metric consistency
+- Centralizes financial logic under governance
 */
 
 
+/*------------------------------------------------------------------------------
+  8.1 Prepare Currency Exchange Lookup
+------------------------------------------------------------------------------*/
+
 /*
+Decision:
+Use a mapping table for currency conversion.
+
+Rationale:
+- Simple and performant lookup
+- Adequate for PoC scope
+- Easily replaceable by time-dependent FX tables later
+*/
+
+Currency_Rate_Map:
+MAPPING LOAD
+    currency,
+    exchange_rate_to_group
+RESIDENT Dim_Currency;
+
+
+/*------------------------------------------------------------------------------
+  8.2 Apply Currency Conversion to Fact Table
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Create converted monetary measures as new fields,
+preserving original local currency values.
+
+Rationale:
+- Maintains auditability
+- Allows dual-currency analysis if needed
+*/
+
+Fact_Cash_Position_Converted:
+LOAD
+    *,
+
+    /*==============================
+      Converted Measures (Group Currency)
+    ==============================*/
+    opening_balance * ApplyMap('Currency_Rate_Map', currency, 1)
+        AS opening_balance_grp,
+
+    cash_in * ApplyMap('Currency_Rate_Map', currency, 1)
+        AS cash_in_grp,
+
+    cash_out * ApplyMap('Currency_Rate_Map', currency, 1)
+        AS cash_out_grp,
+
+    closing_balance * ApplyMap('Currency_Rate_Map', currency, 1)
+        AS closing_balance_grp
+
+RESIDENT Fact_Cash_Position;
+
+
+/*
+Decision:
+Default exchange rate = 1 when currency is not found.
+
+Rationale:
+- Prevents script failure
+- Highlights data quality issues without blocking reload
+*/
+
+
+/*------------------------------------------------------------------------------
+  8.3 Replace Original Fact Table
+------------------------------------------------------------------------------*/
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Converted TO Fact_Cash_Position;
+
+
 
