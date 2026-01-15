@@ -206,3 +206,155 @@ Temporary end of initial version.
 Further ETL steps will be added in controlled iterations.
 */
 
+/******************************************************************************************
+ *
+ * GOVERNED DIMENSIONS
+ *
+ * Scope:
+ * - Create governed dimension tables (Dim_*)
+ * - Preserve raw data integrity
+ * - Prepare the analytical model foundation
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  4. GOVERNED DIMENSIONS
+==============================================================================*/
+
+/*
+Decision:
+Introduce governed dimensions as separate logical entities (Dim_*),
+derived from raw datasets.
+
+Rationale:
+- Clear separation between source data and analytical structures
+- Improves readability and maintainability
+- Aligns with enterprise BI modeling practices
+*/
+
+
+/*------------------------------------------------------------------------------
+  4.1 Company Dimension
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Create a single Company dimension containing both entity attributes
+and hierarchical information (parent company).
+
+Rationale:
+- Enables standalone and consolidated analysis
+- Avoids pre-aggregation
+- Reflects real-world multinational corporate structures
+*/
+
+Dim_Company:
+LOAD DISTINCT
+    company_code,
+    company_name,
+    parent_company,
+    country            AS company_country,
+    local_currency
+RESIDENT Companies_Raw;
+
+
+/*
+Decision:
+Keep hierarchy fields (parent_company) directly in the dimension.
+
+Rationale:
+- Simplifies consolidation logic later
+- Avoids separate hierarchy tables at this PoC stage
+*/
+
+
+/*------------------------------------------------------------------------------
+  4.2 Cost Center Dimension
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Model Cost Centers as a governed dimension linked to Company.
+
+Rationale:
+- Cost centers are stable master data
+- They define analytical slicing for treasury monitoring
+*/
+
+Dim_CostCenter:
+LOAD DISTINCT
+    cost_center,
+    cost_center_name,
+    company_code,
+    country            AS cost_center_country
+RESIDENT CostCenters_Raw;
+
+
+/*------------------------------------------------------------------------------
+  4.3 Country Dimension
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Create an explicit Country dimension, even if attributes are minimal.
+
+Rationale:
+- Enables geographical analysis
+- Supports future regional aggregation
+- Improves semantic clarity in the data model
+*/
+
+Dim_Country:
+LOAD DISTINCT
+    country,
+    region,
+    reporting_currency
+RESIDENT Countries_Raw;
+
+
+/*------------------------------------------------------------------------------
+  4.4 Currency Dimension
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Model Currency as a dimension rather than embedding attributes
+directly in the fact table.
+
+Rationale:
+- Centralizes exchange rate governance
+- Facilitates controlled currency conversion
+- Avoids duplication of reference data
+*/
+
+Dim_Currency:
+LOAD DISTINCT
+    currency,
+    currency_name,
+    exchange_rate_to_group
+RESIDENT Currencies_Raw;
+
+
+/*==============================================================================
+  5. RAW DATA CLEANUP (OPTIONAL)
+==============================================================================*/
+
+/*
+Decision:
+At this stage, raw tables are intentionally kept in memory.
+
+Rationale:
+- Allows validation and comparison between raw and governed layers
+- Useful during PoC development and debugging
+
+Raw tables may be dropped in a later optimization step.
+*/
+
+
+/*
+End of Version 2.
+Next steps will introduce:
+- Calendar dimension
+- Fact table creation
+- Currency conversion logic
+*/
