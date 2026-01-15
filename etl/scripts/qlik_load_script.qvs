@@ -199,13 +199,6 @@ Subsequent sections will:
 - Apply transformations
 - Build the analytical model
 */
-
-
-/*
-Temporary end of initial version.
-Further ETL steps will be added in controlled iterations.
-*/
-
 /******************************************************************************************
  *
  * GOVERNED DIMENSIONS
@@ -349,16 +342,6 @@ Rationale:
 
 Raw tables may be dropped in a later optimization step.
 */
-
-
-/*
-End of Version 2.
-Next steps will introduce:
-- Calendar dimension
-- Fact table creation
-- Currency conversion logic
-*/
-
 /******************************************************************************************
  *
  * FISCAL CALENDAR DIMENSION
