@@ -784,5 +784,157 @@ Rationale:
 - Avoids double-counting risks
 - Supports flexible reporting scopes
 */
+/******************************************************************************************
+ *
+ * VERSION 7 – EXECUTIVE METRICS & BENCHMARKS
+ *
+ * Scope:
+ * - Create executive-level treasury metrics
+ * - Enable Cash Pooling impact analysis
+ * - Finalize governed analytical layer
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  10. EXECUTIVE METRICS
+==============================================================================*/
+
+/*
+Decision:
+Create executive metrics at ETL level rather than exclusively in dashboards.
+
+Rationale:
+- Ensures metric governance
+- Prevents inconsistent calculations
+- Enables reuse across multiple visualizations
+*/
 
 
+/*------------------------------------------------------------------------------
+  10.1 Monthly Average Cash Balance
+------------------------------------------------------------------------------*/
+
+/*
+Definition:
+Average monthly cash balance, used as a proxy for idle cash exposure.
+
+Formula:
+(opening_balance_grp + closing_balance_grp) / 2
+*/
+
+Fact_Cash_Position_Metrics:
+LOAD
+    *,
+
+    /*==============================
+      Average Monthly Cash Balance
+    ==============================*/
+    (opening_balance_grp + closing_balance_grp) / 2
+        AS avg_monthly_cash_grp
+
+RESIDENT Fact_Cash_Position;
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Metrics TO Fact_Cash_Position;
+
+
+/*------------------------------------------------------------------------------
+  10.2 Cash Variation
+------------------------------------------------------------------------------*/
+
+/*
+Definition:
+Net cash movement during the period.
+
+Formula:
+cash_in_grp - cash_out_grp
+*/
+
+Fact_Cash_Position_Metrics2:
+LOAD
+    *,
+
+    (cash_in_grp - cash_out_grp)
+        AS net_cash_movement_grp
+
+RESIDENT Fact_Cash_Position;
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Metrics2 TO Fact_Cash_Position;
+
+
+/*------------------------------------------------------------------------------
+  10.3 Cash Pooling Impact Metrics
+------------------------------------------------------------------------------*/
+
+/*
+Decision:
+Model Cash Pooling impact through scenario comparison
+instead of storing pre-calculated deltas.
+
+Rationale:
+- Keeps fact table normalized
+- Allows flexible comparison logic
+*/
+
+Fact_Cash_Position_Metrics3:
+LOAD
+    *,
+
+    IF(
+        pooling_scenario = 'POST_POOLING',
+        avg_monthly_cash_grp,
+        0
+    ) AS avg_cash_post_pooling,
+
+    IF(
+        pooling_scenario = 'PRE_POOLING',
+        avg_monthly_cash_grp,
+        0
+    ) AS avg_cash_pre_pooling
+
+RESIDENT Fact_Cash_Position;
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Metrics3 TO Fact_Cash_Position;
+
+
+/*------------------------------------------------------------------------------
+  10.4 Benchmark Support Fields
+------------------------------------------------------------------------------*/
+
+/*
+Benchmarks Enabled:
+- Reduction of average idle cash
+- Percentage improvement after Cash Pooling
+
+These fields allow simple, transparent aggregation in dashboards.
+*/
+
+Fact_Cash_Position_Final:
+LOAD
+    *,
+
+    (avg_cash_pre_pooling - avg_cash_post_pooling)
+        AS cash_reduction_grp,
+
+    IF(
+        avg_cash_pre_pooling <> 0,
+        (avg_cash_pre_pooling - avg_cash_post_pooling) / avg_cash_pre_pooling,
+        NULL()
+    ) AS cash_reduction_pct
+
+RESIDENT Fact_Cash_Position;
+
+DROP TABLE Fact_Cash_Position;
+RENAME TABLE Fact_Cash_Position_Final TO Fact_Cash_Position;
+
+
+/*
+Decision:
+Do not hardcode benchmark targets (e.g. 15% reduction) in ETL.
+
+Rationale:
+- Benchmarks vary by company and context
+- Targets should be adjustable in analysis layer
+*/
