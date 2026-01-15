@@ -1,0 +1,208 @@
+/******************************************************************************************
+ *
+ * File:        qlik_load_script.qvs
+ * Project:     Cash Pooling Proof of Concept
+ * Platform:    Qlik Sense Cloud
+ *
+ * Author:      Alexandre de Andrade
+ * Purpose:     Initial ETL load script for the Cash Pooling PoC.
+ *
+ * Description:
+ * This script implements the first stage of the ETL process:
+ * - Loading crude (raw) CSV data
+ * - Preserving source structure and granularity
+ * - Establishing a governed foundation for further transformations
+ *
+ * Design Principles:
+ * - Separation of concerns
+ * - Traceability and reprocessability
+ * - Clear distinction between data layers
+ *
+ * IMPORTANT:
+ * At this stage, NO business rules, aggregations or derived metrics
+ * are applied. All transformations will be introduced incrementally
+ * and documented.
+ *
+ ******************************************************************************************/
+
+/*==============================================================================
+  0. ENVIRONMENT & SCRIPT SETTINGS
+==============================================================================*/
+
+/*
+Decision:
+Explicitly define script environment settings to avoid implicit defaults
+that may vary across environments or developers.
+
+Rationale:
+Improves predictability, readability and portability of the script.
+*/
+
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET MoneyThousandSep=',';
+SET MoneyDecimalSep='.';
+SET MoneyFormat='$#,##0.00;-$#,##0.00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='YYYY-MM-DD';
+SET TimestampFormat='YYYY-MM-DD hh:mm:ss[.fff]';
+SET FirstWeekDay=0;
+SET BrokenWeeks=0;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+
+
+/*==============================================================================
+  1. DATA SOURCE PARAMETERS
+==============================================================================*/
+
+/*
+Decision:
+Centralize file paths and parameters at the beginning of the script.
+
+Rationale:
+- Simplifies maintenance
+- Enables quick redirection to other environments
+- Is a standard practice in governed ETL pipelines
+*/
+
+LET vRawDataPath = 'lib://data/raw/';
+
+
+/*==============================================================================
+  2. RAW (CRUDE) DATA LOAD
+==============================================================================*/
+
+/*
+This section loads data exactly as provided by the source CSV files.
+
+Decision:
+No transformations, no joins, no calculations at this stage.
+
+Rationale:
+- Preserves data lineage
+- Enables full reload and reprocessing
+- Aligns with data lake / lakehouse concepts
+*/
+
+
+/*------------------------------------------------------------------------------
+  2.1 Company Master Data
+------------------------------------------------------------------------------*/
+
+Companies_Raw:
+LOAD
+    company_code,
+    company_name,
+    parent_company,
+    country,
+    local_currency
+FROM [$(vRawDataPath)companies.csv]
+(txt, utf8, embedded labels, delimiter=',', msq);
+
+
+/*
+Decision:
+Keep company hierarchy attributes in the raw layer.
+
+Rationale:
+Hierarchy logic will be applied later, but source attributes must
+remain untouched for transparency and auditability.
+*/
+
+
+/*------------------------------------------------------------------------------
+  2.2 Cost Center Master Data
+------------------------------------------------------------------------------*/
+
+CostCenters_Raw:
+LOAD
+    cost_center,
+    cost_center_name,
+    company_code,
+    country
+FROM [$(vRawDataPath)cost_centers.csv]
+(txt, utf8, embedded labels, delimiter=',', msq);
+
+
+/*------------------------------------------------------------------------------
+  2.3 Country Reference Data
+------------------------------------------------------------------------------*/
+
+Countries_Raw:
+LOAD
+    country,
+    region,
+    reporting_currency
+FROM [$(vRawDataPath)countries.csv]
+(txt, utf8, embedded labels, delimiter=',', msq);
+
+
+/*------------------------------------------------------------------------------
+  2.4 Currency Reference Data
+------------------------------------------------------------------------------*/
+
+Currencies_Raw:
+LOAD
+    currency,
+    currency_name,
+    exchange_rate_to_group
+FROM [$(vRawDataPath)currencies.csv]
+(txt, utf8, embedded labels, delimiter=',', msq);
+
+
+/*------------------------------------------------------------------------------
+  2.5 Treasury Cash Position (Fact – Crude)
+------------------------------------------------------------------------------*/
+
+CashPosition_Raw:
+LOAD
+    company_code,
+    company_name,
+    country,
+    cost_center,
+    fiscal_year,
+    fiscal_month,
+    currency,
+    opening_balance,
+    cash_in,
+    cash_out,
+    closing_balance,
+    pooling_scenario
+FROM [$(vRawDataPath)treasury_cash_position.csv]
+(txt, utf8, embedded labels, delimiter=',', msq);
+
+
+/*
+Decision:
+Load the cash position table as a single, non-aggregated fact dataset.
+
+Rationale:
+- Monthly grain is preserved
+- Pre/Post pooling scenarios coexist in the same structure
+- Enables flexible analytical slicing later
+*/
+
+
+/*==============================================================================
+  3. HOUSEKEEPING & SCRIPT CONTROL
+==============================================================================*/
+
+/*
+Decision:
+Explicitly separate raw data load from transformation logic.
+
+Rationale:
+This makes the script easier to read, review and evolve incrementally.
+Subsequent sections will:
+- Rename tables
+- Apply transformations
+- Build the analytical model
+*/
+
+
+/*
+Temporary end of initial version.
+Further ETL steps will be added in controlled iterations.
+*/
+
