@@ -1,171 +1,189 @@
-# Dados Crus – Arquivos CSV Sintéticos de Tesouraria
+# Dados Crus — Estrutura dos CSVs
 
-## Objetivo desta Pasta
+Este diretório contém os **conjuntos de dados de entrada crus** utilizados no Proof of Concept de **Cash Pooling**.
 
-Esta pasta contém os **arquivos CSV sintéticos crus** utilizados como entrada no PoC de Cash Pooling em Qlik Sense Cloud.
+Todos os dados são **sintéticos**, gerados com base em regras explícitas documentadas em  
+`docs/data_generation_rules.md`.
 
-Esses arquivos simulam **extrações financeiras de um sistema ERP**, com estruturas e semântica inspiradas no **SAP S/4HANA**, sem utilização de dados reais ou confidenciais.
-
-Os arquivos aqui presentes representam o **ponto inicial do processo de ETL**.  
-Nesta etapa, **nenhuma regra de negócio, agregação ou consolidação deve ser assumida**.
-
----
-
-## Princípios de Design
-
-Os datasets crus foram desenhados seguindo os seguintes princípios:
-
-- **Estrutura semelhante a ERP**  
-  Nomes de campos e entidades refletem conceitos financeiros comuns do SAP, aumentando o realismo e a reconhecibilidade.
-
-- **Transformação mínima**  
-  Os dados são armazenados de forma próxima ao formato original de extração do sistema de origem.
-
-- **Granularidade mensal**  
-  Todos os valores financeiros estão no nível mensal, alinhados aos ciclos de reporte da tesouraria.
-
-- **Multiempresa e multinacional**  
-  Os dados suportam cenários de consolidação necessários ao processo de Cash Pooling.
-
-- **Suporte a cenários Antes / Depois**  
-  Campos permitem distinguir situações pré e pós implantação do Cash Pooling.
+Os arquivos CSV foram projetados para:
+- Simular um **modelo de dados inspirado no SAP S/4HANA**
+- Suportar **analytics governado** no Qlik Sense Cloud
+- Permitir análises **ANTES vs DEPOIS (PRE / POST) do Cash Pooling**
+- Garantir **reprodutibilidade e transparência** dos dados
 
 ---
 
-## Visão Geral dos Arquivos CSV Crus
+## Propósito do Diretório
 
-### 1. `treasury_cash_position.csv`
+A camada `/data/raw` representa a **camada de ingestão** do pipeline analítico:
 
-**Descrição**  
-Contém a posição de caixa mensal por empresa, país e centro de custo.
+- Sem transformações
+- Sem agregações
+- Sem conversão de moeda
+- Sem regras de negócio aplicadas
 
-Este é o **principal dataset de fatos** para análise dos efeitos do Cash Pooling.
-
-**Grão**
-- Um registro por:
-  - Empresa
-  - País
-  - Centro de Custo
-  - Mês
-
-**Principais Campos**
-
-| Nome do Campo | Descrição |
-|--------------|-----------|
-| company_code | Identificador da entidade legal (Company Code no padrão SAP) |
-| company_name | Nome da empresa |
-| country | País de operação |
-| cost_center | Identificador do centro de custo |
-| fiscal_year | Ano fiscal |
-| fiscal_month | Mês fiscal (1–12) |
-| currency | Moeda local |
-| opening_balance | Saldo de caixa no início do mês |
-| cash_in | Total de entradas de caixa no mês |
-| cash_out | Total de saídas de caixa no mês |
-| closing_balance | Saldo de caixa no final do mês |
-| pooling_scenario | Indicador `PRE_POOLING` ou `POST_POOLING` |
+Toda a lógica de negócio e cálculos são aplicados **dentro do Qlik Sense**.
 
 ---
 
-### 2. `companies.csv`
+## Visão Geral dos Arquivos CSV
 
-**Descrição**  
-Dados mestres das entidades legais do grupo.
-
-**Finalidade**
-- Suportar a lógica de consolidação
-- Definir o relacionamento entre subsidiárias e holding
-
-**Principais Campos**
-
-| Nome do Campo | Descrição |
-|--------------|-----------|
-| company_code | Código da empresa |
-| company_name | Nome da empresa |
-| parent_company | Código da holding ou empresa controladora |
-| country | País de registro |
-| local_currency | Moeda local da empresa |
+| Arquivo | Tipo | Descrição |
+|---|---|---|
+| `holding.csv` | Dimensão | Estrutura de holding para consolidação |
+| `company.csv` | Dimensão | Cadastro das empresas (Company Code) |
+| `country.csv` | Dimensão | País e moeda local |
+| `cost_center.csv` | Dimensão | Centros de custo por empresa |
+| `currency.csv` | Dimensão | Cadastro de moedas |
+| `exchange_rate.csv` | Fato (auxiliar) | Taxas de câmbio mensais para USD |
+| `cash_position.csv` | **Fato (principal)** | Posição de caixa mensal (PRE / POST) |
 
 ---
 
-### 3. `cost_centers.csv`
+## 1. `holding.csv`
 
-**Descrição**  
-Dados mestres dos centros de custo utilizados na análise de tesouraria.
+**Granularidade:** Uma linha por holding.
 
-**Principais Campos**
-
-| Nome do Campo | Descrição |
-|--------------|-----------|
-| cost_center | Código do centro de custo |
-| cost_center_name | Descrição do centro de custo |
-| company_code | Empresa proprietária |
-| country | País |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| holding_id | TEXTO | Identificador da holding (PK) |
+| holding_name | TEXTO | Nome da holding |
+| reporting_currency | TEXTO | Moeda de reporte do grupo (USD) |
 
 ---
 
-### 4. `countries.csv`
+## 2. `company.csv`
 
-**Descrição**  
-Tabela de referência de países.
+**Granularidade:** Uma linha por empresa.
 
-**Principais Campos**
+| Campo | Tipo | Descrição |
+|---|---|---|
+| company_id | TEXTO | Identificador da empresa (PK) |
+| company_name | TEXTO | Nome da empresa |
+| holding_id | TEXTO | Identificador da holding (FK) |
+| country_code | TEXTO | Código do país (FK) |
+| local_currency | TEXTO | Moeda local da empresa |
+| company_type | TEXTO | Industrial / Serviços (opcional) |
 
-| Nome do Campo | Descrição |
-|--------------|-----------|
-| country | Código ou nome do país |
-| region | Região geográfica |
-| reporting_currency | Moeda utilizada para reporte |
-
----
-
-### 5. `currencies.csv`
-
-**Descrição**  
-Tabela de referência de moedas utilizadas no PoC.
-
-**Principais Campos**
-
-| Nome do Campo | Descrição |
-|--------------|-----------|
-| currency | Código da moeda (ex.: USD, EUR) |
-| currency_name | Descrição da moeda |
-| exchange_rate_to_group | Taxa de câmbio para a moeda de reporte do grupo |
+> Nota: Algumas redundâncias (ex.: moeda local) são intencionais e refletem
+> práticas comuns em modelos SAP.
 
 ---
 
-## Relação com o Processo de ETL
+## 3. `country.csv`
 
-- Os arquivos desta pasta são **carregados sem transformação** no Qlik Sense Cloud.
-- Todas as transformações, cálculos e regras de consolidação são implementadas **na camada de ETL**.
-- Nenhuma métrica derivada deve ser calculada diretamente a partir dos arquivos crus.
+**Granularidade:** Uma linha por país.
 
-A lógica detalhada de transformação está documentada em:
-etl/etl_decisions.md
+| Campo | Tipo | Descrição |
+|---|---|---|
+| country_code | TEXTO | Código do país (PK) |
+| country_name | TEXTO | Nome do país |
+| currency_code | TEXTO | Moeda local |
+| region | TEXTO | Região geográfica |
 
 ---
 
-## Premissas e Limitações
+## 4. `cost_center.csv`
 
-- Os dados são **sintéticos e simplificados**, com finalidade demonstrativa.
-- As taxas de câmbio são estáticas e simplificadas.
-- O calendário fiscal considera meses padrão.
-- A estrutura prioriza clareza, não a complexidade total de um ambiente SAP real.
+**Granularidade:** Uma linha por centro de custo **por empresa**.
 
-Essas premissas são **intencionais e explicitamente documentadas** para manter o foco do PoC em analytics e governança.
+Cada empresa possui **9 centros de custo**:
+- 3 Operacionais
+- 3 Administrativos
+- 3 Comerciais
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| cost_center_id | TEXTO | Código do centro de custo |
+| cost_center_type | TEXTO | OP / AD / CO |
+| cost_center_name | TEXTO | Descrição do centro de custo |
+| company_id | TEXTO | Identificador da empresa (FK) |
+
+> Centros de custo **não fazem parte da granularidade do fato**.  
+> São utilizados para filtros, drill-down e governança.
+
+---
+
+## 5. `currency.csv`
+
+**Granularidade:** Uma linha por moeda.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| currency_code | TEXTO | Código da moeda (PK) |
+| currency_name | TEXTO | Nome da moeda |
+
+---
+
+## 6. `exchange_rate.csv`
+
+**Granularidade:** Uma linha por moeda **por mês**.
+
+Contém **taxas médias mensais** para conversão em USD.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| calendar_date | DATA | Data de fechamento do mês |
+| fiscal_year | INTEIRO | Ano fiscal |
+| fiscal_month | INTEIRO | Mês fiscal |
+| from_currency | TEXTO | Moeda de origem |
+| to_currency | TEXTO | Moeda de destino (USD) |
+| fx_rate | DECIMAL | Taxa de câmbio |
+
+Regras:
+- A mesma taxa se aplica a todas as empresas no mesmo mês
+- A taxa USD → USD é sempre 1,0
+
+---
+
+## 7. `cash_position.csv` (Fato Principal)
+
+**Granularidade:**  
+**Empresa + Mês + Cenário**
+
+Esta é a **tabela fato central** do PoC.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| calendar_date | DATA | Data de fechamento do mês |
+| fiscal_year | INTEIRO | Ano fiscal |
+| fiscal_month | INTEIRO | Mês fiscal |
+| scenario | TEXTO | PRE ou POST |
+| holding_id | TEXTO | Identificador da holding |
+| company_id | TEXTO | Identificador da empresa |
+| country_code | TEXTO | Código do país |
+| local_currency | TEXTO | Moeda local |
+| cash_amount_local | DECIMAL | Saldo de caixa (moeda local) |
+
+Importante:
+- Os valores são sempre **positivos**
+- Nenhuma conversão de moeda é aplicada neste arquivo
+- Os cenários PRE e POST coexistem na mesma tabela
+
+---
+
+## Observações de Modelagem
+
+- O modelo utiliza **redundância controlada**
+- Não existem dados transacionais
+- Todas as métricas (FX, consolidação, KPIs) são calculadas no Qlik
+- A estrutura prioriza **clareza, performance e análise executiva**
+
+---
+
+## Aviso de Uso
+
+Esses dados são:
+- Totalmente sintéticos
+- Criados exclusivamente para demonstrações analíticas
+- Não devem ser usados para fins contábeis ou regulatórios
 
 ---
 
 ## Próximos Passos
 
-Atividades planejadas relacionadas aos dados crus:
-
-1. Geração dos arquivos CSV de exemplo com base nos layouts definidos  
-2. Validação de chaves e relacionamentos  
-3. Carga dos dados no Qlik Sense Cloud e início do scripting de ETL  
-
----
-
-## Aviso Legal
-
-Todos os datasets desta pasta são fictícios e foram criados exclusivamente para fins de portfólio e demonstração.
+Após o carregamento no Qlik Sense Cloud:
+1. Aplicar transformações governadas
+2. Implementar conversão de moeda
+3. Executar consolidação por holding
+4. Construir dashboards executivos
