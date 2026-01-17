@@ -1,172 +1,189 @@
-# Raw Data – Synthetic Treasury CSV Files
+# Raw Data — CSV Structure
 
-## Purpose of This Folder
+This directory contains the **raw input datasets** used in the Cash Pooling Proof of Concept.
 
-This folder contains the **raw synthetic CSV files** used as input for the Qlik Sense Cloud Cash Pooling PoC.
+All data is **synthetically generated**, following explicit business rules defined in  
+`docs/data_generation_rules.md`.
 
-These files simulate **financial extractions from an ERP system**, with structures and semantics inspired by **SAP S/4HANA**, but without using any real or confidential data.
-
-The files in this folder represent the **starting point of the ETL process**.  
-No business logic, aggregations, or consolidations should be assumed at this stage.
-
----
-
-## Design Principles
-
-The raw datasets were designed following these principles:
-
-- **ERP-like structure**  
-  Field names and entities resemble common SAP financial concepts to increase realism and recognizability.
-
-- **Minimal transformation**  
-  Data is stored close to how it would be extracted from a source system.
-
-- **Monthly granularity**  
-  All financial values are monthly, aligned with treasury reporting cycles.
-
-- **Multi-company and multi-country**  
-  Data supports consolidation scenarios required for Cash Pooling.
-
-- **Before / After scenario support**  
-  Fields allow distinguishing pre- and post-Cash Pooling situations.
+The CSV files are designed to:
+- Resemble a **SAP S/4HANA–like data model**
+- Support **governed analytics** in Qlik Sense Cloud
+- Enable **PRE vs POST Cash Pooling** analysis
+- Serve as a reproducible and transparent data foundation
 
 ---
 
-## Overview of Raw CSV Files
+## Directory Purpose
 
-### 1. `treasury_cash_position.csv`
+The `/data/raw` layer represents the **ingestion layer** of the analytics pipeline:
 
-**Description**  
-Contains the monthly cash position per company, country, and cost center.
+- No transformations
+- No aggregations
+- No currency conversion
+- No business logic applied
 
-This is the **main fact dataset** used to analyze Cash Pooling effects.
-
-**Grain**
-- One record per:
-  - Company
-  - Country
-  - Cost Center
-  - Month
-
-**Key Fields**
-
-| Field Name | Description |
-|-----------|------------|
-| company_code | Legal entity identifier (SAP-like Company Code) |
-| company_name | Company description |
-| country | Country of operation |
-| cost_center | Cost center identifier |
-| fiscal_year | Fiscal year |
-| fiscal_month | Fiscal month (1–12) |
-| currency | Local currency |
-| opening_balance | Cash balance at the beginning of the month |
-| cash_in | Total cash inflows during the month |
-| cash_out | Total cash outflows during the month |
-| closing_balance | Cash balance at the end of the month |
-| pooling_scenario | Flag indicating `PRE_POOLING` or `POST_POOLING` |
+All business rules and calculations are applied **inside Qlik Sense**.
 
 ---
 
-### 2. `companies.csv`
+## CSV Files Overview
 
-**Description**  
-Master data for legal entities within the group.
-
-**Purpose**
-- Supports consolidation logic
-- Defines relationship between subsidiaries and holding
-
-**Key Fields**
-
-| Field Name | Description |
-|-----------|------------|
-| company_code | Company identifier |
-| company_name | Company name |
-| parent_company | Holding or parent company code |
-| country | Country of registration |
-| local_currency | Company local currency |
+| File | Type | Description |
+|---|---|---|
+| `holding.csv` | Dimension | Holding structure for consolidation |
+| `company.csv` | Dimension | Company (Company Code) master data |
+| `country.csv` | Dimension | Country and local currency |
+| `cost_center.csv` | Dimension | Cost centers per company |
+| `currency.csv` | Dimension | Currency master data |
+| `exchange_rate.csv` | Fact (auxiliary) | Monthly FX rates to USD |
+| `cash_position.csv` | **Fact (core)** | Monthly cash position (PRE / POST) |
 
 ---
 
-### 3. `cost_centers.csv`
+## 1. `holding.csv`
 
-**Description**  
-Master data for cost centers used in treasury analysis.
+**Grain:** One row per holding.
 
-**Key Fields**
-
-| Field Name | Description |
-|-----------|------------|
-| cost_center | Cost center identifier |
-| cost_center_name | Cost center description |
-| company_code | Owning company |
-| country | Country |
+| Field | Type | Description |
+|---|---|---|
+| holding_id | STRING | Holding identifier (PK) |
+| holding_name | STRING | Holding name |
+| reporting_currency | STRING | Group reporting currency (USD) |
 
 ---
 
-### 4. `countries.csv`
+## 2. `company.csv`
 
-**Description**  
-Reference table for countries.
+**Grain:** One row per company.
 
-**Key Fields**
+| Field | Type | Description |
+|---|---|---|
+| company_id | STRING | Company identifier (PK) |
+| company_name | STRING | Company name |
+| holding_id | STRING | Holding identifier (FK) |
+| country_code | STRING | Country code (FK) |
+| local_currency | STRING | Local company currency |
+| company_type | STRING | Manufacturing / Services (optional) |
 
-| Field Name | Description |
-|-----------|------------|
-| country | Country code or name |
-| region | Geographic region |
-| reporting_currency | Currency used for reporting |
-
----
-
-### 5. `currencies.csv`
-
-**Description**  
-Reference table for currencies used in the PoC.
-
-**Key Fields**
-
-| Field Name | Description |
-|-----------|------------|
-| currency | Currency code (e.g., USD, EUR) |
-| currency_name | Currency description |
-| exchange_rate_to_group | Exchange rate to group reporting currency |
+> Note: Some redundancy (e.g., local_currency) is intentional and reflects
+> SAP-like master data design.
 
 ---
 
-## Relationship to the ETL Process
+## 3. `country.csv`
 
-- Files in this folder are **loaded as-is** into Qlik Sense Cloud.
-- All transformations, calculations, and consolidation logic are implemented **in the ETL layer**.
-- No derived metrics should be calculated directly from raw files.
+**Grain:** One row per country.
 
-Detailed transformation logic is documented in: etl/etl_decisions.md
+| Field | Type | Description |
+|---|---|---|
+| country_code | STRING | Country code (PK) |
+| country_name | STRING | Country name |
+| currency_code | STRING | Local currency |
+| region | STRING | Geographic region |
 
 ---
 
-## Assumptions and Limitations
+## 4. `cost_center.csv`
 
-- Data is **synthetic and simplified** for demonstration purposes.
-- Exchange rates are static and simplified.
-- Fiscal calendar assumes standard calendar months.
-- The structure is designed for clarity, not full SAP financial complexity.
+**Grain:** One row per cost center **per company**.
 
-These assumptions are **intentional and documented** to keep the PoC focused on analytics and governance.
+Each company has **9 cost centers**:
+- 3 Operational
+- 3 Administrative
+- 3 Commercial
+
+| Field | Type | Description |
+|---|---|---|
+| cost_center_id | STRING | Cost center code |
+| cost_center_type | STRING | OP / AD / CO |
+| cost_center_name | STRING | Cost center description |
+| company_id | STRING | Company identifier (FK) |
+
+> Cost centers are **not part of the fact table grain**.  
+> They are used for filtering, drill-down, and governance.
+
+---
+
+## 5. `currency.csv`
+
+**Grain:** One row per currency.
+
+| Field | Type | Description |
+|---|---|---|
+| currency_code | STRING | Currency code (PK) |
+| currency_name | STRING | Currency name |
+
+---
+
+## 6. `exchange_rate.csv`
+
+**Grain:** One row per currency **per month**.
+
+Contains **monthly average FX rates** to USD.
+
+| Field | Type | Description |
+|---|---|---|
+| calendar_date | DATE | Month-end date |
+| fiscal_year | INTEGER | Fiscal year |
+| fiscal_month | INTEGER | Fiscal month |
+| from_currency | STRING | Source currency |
+| to_currency | STRING | Target currency (USD) |
+| fx_rate | DECIMAL | FX rate |
+
+Rules:
+- Same FX rate applies to all companies in the same month
+- USD → USD rate is always 1.0
+
+---
+
+## 7. `cash_position.csv` (Core Fact)
+
+**Grain:**  
+**Company + Month + Scenario**
+
+This is the **main fact table** of the PoC.
+
+| Field | Type | Description |
+|---|---|---|
+| calendar_date | DATE | Month-end date |
+| fiscal_year | INTEGER | Fiscal year |
+| fiscal_month | INTEGER | Fiscal month |
+| scenario | STRING | PRE or POST |
+| holding_id | STRING | Holding identifier |
+| company_id | STRING | Company identifier |
+| country_code | STRING | Country code |
+| local_currency | STRING | Local currency |
+| cash_amount_local | DECIMAL | Cash balance (local currency) |
+
+Important:
+- Values are always **positive**
+- No currency conversion is applied here
+- PRE and POST scenarios coexist in the same table
+
+---
+
+## Data Modeling Notes
+
+- The model intentionally uses **controlled redundancy**
+- No transactional data is included
+- All calculations (FX conversion, consolidation, KPIs) are performed in Qlik
+- The structure favors **clarity, performance, and executive analytics**
+
+---
+
+## Usage Disclaimer
+
+These datasets are:
+- Fully synthetic
+- Designed exclusively for analytics demonstrations
+- Not intended for accounting or regulatory reporting
 
 ---
 
 ## Next Steps
 
-Planned next activities related to raw data:
-
-1. Generate sample CSV files based on the layouts described here  
-2. Validate relationships and keys  
-3. Load data into Qlik Sense Cloud and start ETL scripting  
-
----
-
-## Disclaimer
-
-All datasets in this folder are fictional and created solely for portfolio and demonstration purposes.
-
-
+After loading this data into Qlik Sense Cloud:
+1. Apply governed transformations
+2. Implement FX conversion
+3. Apply holding-level consolidation
+4. Build executive dashboards
