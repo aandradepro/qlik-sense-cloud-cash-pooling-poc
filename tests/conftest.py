@@ -2,7 +2,9 @@ import pytest
 import pandas as pd
 from pathlib import Path
 
-DATA_PATH = Path("../data/raw/")
+# Path absoluto baseado na localização deste arquivo
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "data" / "raw"
 
 @pytest.fixture(scope="session")
 def holding():

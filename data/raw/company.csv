@@ -1,0 +1,11 @@
+company_id,company_name,holding_id,country_code,local_currency,company_type
+C001,Brazil Co 1,HOLD01,BR,BRL,Manufacturing
+C002,Brazil Co 2,HOLD01,BR,BRL,Services
+C003,United States Co 1,HOLD01,US,USD,Manufacturing
+C004,United States Co 2,HOLD01,US,USD,Services
+C005,Germany Co 1,HOLD01,DE,EUR,Manufacturing
+C006,Germany Co 2,HOLD01,DE,EUR,Services
+C007,United Kingdom Co 1,HOLD01,UK,GBP,Manufacturing
+C008,United Kingdom Co 2,HOLD01,UK,GBP,Services
+C009,Mexico Co 1,HOLD01,MX,MXN,Manufacturing
+C010,Mexico Co 2,HOLD01,MX,MXN,Services

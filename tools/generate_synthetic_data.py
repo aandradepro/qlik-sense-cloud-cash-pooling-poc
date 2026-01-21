@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -168,14 +169,17 @@ cash_position_df = pd.DataFrame(fact_rows)
 # 10. EXPORT CSVs
 # ======================================================
 
-OUTPUT_PATH = "../data/raw/"
+# Path absoluto baseado na localização do arquivo
+BASE_DIR = Path(__file__).resolve().parent.parent
+OUTPUT_PATH = BASE_DIR / "data" / "raw"
+OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
-holding_df.to_csv(f"{OUTPUT_PATH}holding.csv", index=False)
-company_df.to_csv(f"{OUTPUT_PATH}company.csv", index=False)
-country_df.to_csv(f"{OUTPUT_PATH}country.csv", index=False)
-cost_center_df.to_csv(f"{OUTPUT_PATH}cost_center.csv", index=False)
-currency_df.to_csv(f"{OUTPUT_PATH}currency.csv", index=False)
-exchange_rate_df.to_csv(f"{OUTPUT_PATH}exchange_rate.csv", index=False)
-cash_position_df.to_csv(f"{OUTPUT_PATH}cash_position.csv", index=False)
+holding_df.to_csv(OUTPUT_PATH / "holding.csv", index=False)
+company_df.to_csv(OUTPUT_PATH / "company.csv", index=False)
+country_df.to_csv(OUTPUT_PATH / "country.csv", index=False)
+cost_center_df.to_csv(OUTPUT_PATH / "cost_center.csv", index=False)
+currency_df.to_csv(OUTPUT_PATH / "currency.csv", index=False)
+exchange_rate_df.to_csv(OUTPUT_PATH / "exchange_rate.csv", index=False)
+cash_position_df.to_csv(OUTPUT_PATH / "cash_position.csv", index=False)
 
 print("Synthetic Cash Pooling datasets generated successfully.")
