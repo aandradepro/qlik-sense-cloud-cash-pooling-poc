@@ -1,4 +1,4 @@
-cost_center_id,cost_center_type,cost_center_name,company_id
+cost_center_id,cost_center_type,cost_center_name,cost_center_company_id
 C001_OP1,OP,OP Cost Center 1,C001
 C001_OP2,OP,OP Cost Center 2,C001
 C001_OP3,OP,OP Cost Center 3,C001

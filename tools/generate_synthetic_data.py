@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 
 # ======================================================
@@ -11,9 +11,9 @@ from dateutil.relativedelta import relativedelta
 SEED = 42
 np.random.seed(SEED)
 
-START_DATE = datetime(2022, 1, 31)
 MONTHS = 36
-
+END_DATE = date.today() - relativedelta(months=-1*(MONTHS + 1))
+START_DATE = END_DATE.replace(day=1)
 COUNTRIES = {
     "BR": {"name": "Brazil", "currency": "BRL", "region": "LATAM"},
     "US": {"name": "United States", "currency": "USD", "region": "NA"},
@@ -65,7 +65,7 @@ country_df = pd.DataFrame([
     {
         "country_code": k,
         "country_name": v["name"],
-        "currency_code": v["currency"],
+        "country_currency": v["currency"],
         "region": v["region"],
     }
     for k, v in COUNTRIES.items()
@@ -85,7 +85,7 @@ for country_code, cdata in COUNTRIES.items():
             "company_name": f"{cdata['name']} Co {i+1}",
             "holding_id": HOLDING_ID,
             "country_code": country_code,
-            "local_currency": cdata["currency"],
+            "company_currency": cdata["currency"],
             "company_type": "Manufacturing" if i % 2 == 0 else "Services",
         })
         company_counter += 1
@@ -105,10 +105,22 @@ for _, row in company_df.iterrows():
                 "cost_center_id": f"{row.company_id}_{cc_type}{i}",
                 "cost_center_type": cc_type,
                 "cost_center_name": f"{cc_type} Cost Center {i}",
-                "company_id": row.company_id,
+                "cost_center_company_id": row.company_id,
             })
 
 cost_center_df = pd.DataFrame(cost_centers)
+
+# ======================================================
+# 6.1 COST CENTER LOOKUPS (DERIVED STRUCTURES)
+# ======================================================
+
+# Map cost centers per company (used in fact generation)
+cost_centers_by_company = (
+    cost_center_df
+    .groupby("cost_center_company_id")["cost_center_id"]
+    .apply(list)
+    .to_dict()
+)
 
 # ======================================================
 # 7. CURRENCY
@@ -145,23 +157,31 @@ exchange_rate_df = pd.DataFrame(fx_rows)
 fact_rows = []
 
 for _, comp in company_df.iterrows():
-    base_cash = np.random.uniform(5_000_000, 25_000_000)
+    base_cash = np.random.uniform(5_000, 25_000)
+    
+    company_cost_centers = cost_centers_by_company[comp.company_id]
+    num_cc = len(company_cost_centers)
 
     for _, cal in calendar_df.iterrows():
         for scenario in SCENARIOS:
             adjustment = 1.0 if scenario == "PRE" else np.random.uniform(1.05, 1.25)
+            total_cash = base_cash * adjustment
+#TODO: Divide cash equally among cost centers, could be improved to a more realistic distribution.
+            cash_per_cc = total_cash / num_cc
 
-            fact_rows.append({
-                "calendar_date": cal.calendar_date,
-                "fiscal_year": cal.fiscal_year,
-                "fiscal_month": cal.fiscal_month,
-                "scenario": scenario,
-                "holding_id": HOLDING_ID,
-                "company_id": comp.company_id,
-                "country_code": comp.country_code,
-                "local_currency": comp.local_currency,
-                "cash_amount_local": round(base_cash * adjustment, 2),
-            })
+            for cost_center_id in company_cost_centers:
+                fact_rows.append({
+                    "date": cal.calendar_date,
+                    "fiscal_year": cal.fiscal_year,
+                    "fiscal_month": cal.fiscal_month,
+                    "scenario": scenario,
+                    "holding_id": HOLDING_ID,
+                    "company_id": comp.company_id,
+                    "cost_center_id": cost_center_id,
+                    "country_code": comp.country_code,
+                    "cash_currency": comp.company_currency,
+                    "cash_amount": round(cash_per_cc, 2),
+                })
 
 cash_position_df = pd.DataFrame(fact_rows)
 
