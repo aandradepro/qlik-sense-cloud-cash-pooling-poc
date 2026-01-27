@@ -75,7 +75,7 @@ Esses benchmarks são mensuráveis e estão explicitamente refletidos no modelo 
 
 Comparações com QlikView ou arquiteturas on-premise estão **fora do escopo**, por decisão consciente.
 
-### Fora d de Escopo: Atividades de Cash Pooling
+### Fora de Escopo: Atividades de Cash Pooling
 
 Este Proof of Concept não executa operacionalmente o processo de cash pooling (ou seja, não realiza movimentações de caixa, sweeps bancários ou transações de tesouraria).
 
