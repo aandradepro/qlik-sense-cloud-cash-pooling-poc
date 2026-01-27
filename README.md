@@ -76,7 +76,9 @@ Comparisons with QlikView or on-premise architectures are intentionally **out of
 ### Out of Scope: Cash Pooling activities
 
 This Proof of Concept does not execute a cash pooling process operationally (i.e., no cash movements, bank sweeps, or treasury transactions are performed).
+
 Instead, the PoC is designed to analyze, compare, and govern the financial impact of a cash pooling decision, using PRE and POST strategic scenarios.
+
 The focus of this project is decision analytics, providing CFO-level visibility into how liquidity, consolidation, and cash efficiency behave before and after the adoption of cash pooling, rather than implementing the operational mechanics of the process itself.
 
 ---
