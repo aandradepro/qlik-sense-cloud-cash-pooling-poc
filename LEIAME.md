@@ -75,6 +75,14 @@ Esses benchmarks são mensuráveis e estão explicitamente refletidos no modelo 
 
 Comparações com QlikView ou arquiteturas on-premise estão **fora do escopo**, por decisão consciente.
 
+### Fora de Escopo: Atividades de Cash Pooling
+
+Este Proof of Concept não executa operacionalmente o processo de cash pooling (ou seja, não realiza movimentações de caixa, sweeps bancários ou transações de tesouraria).
+
+O objetivo do PoC é analisar, comparar e governar o impacto financeiro da decisão de implementar cash pooling, por meio de cenários estratégicos PRE (antes) e POST (depois).
+
+O foco do projeto está em analytics para tomada de decisão, oferecendo visibilidade em nível executivo (CFO) sobre liquidez, consolidação e eficiência de caixa, e não na execução operacional do processo de tesouraria.
+
 ---
 
 ## Abordagem de Dados
