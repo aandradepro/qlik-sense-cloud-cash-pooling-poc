@@ -1,5 +1,5 @@
 # Qlik Sense Cloud – Cash Pooling Treasury PoC
-
+[versão pt_BR](LEIAME.md)
 ## Overview
 
 This repository contains a **Proof of Concept (PoC)** built on **Qlik Sense Cloud (SaaS)** that simulates a **multinational treasury Cash Pooling process**.
