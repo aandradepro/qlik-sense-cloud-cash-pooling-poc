@@ -153,6 +153,11 @@ exchange_rate_df = pd.DataFrame(fx_rows)
 # ======================================================
 # 9. CASH POSITION (FACT)
 # ======================================================
+COST_CENTER_WEIGHTS = {
+    "OP": 0.5,  # 50% do caixa
+    "CO": 0.3,  # 30%
+    "AD": 0.2,  # 20%
+}
 
 fact_rows = []
 
@@ -167,21 +172,34 @@ for _, comp in company_df.iterrows():
             adjustment = 1.0 if scenario == "PRE" else np.random.uniform(1.05, 1.25)
             total_cash = base_cash * adjustment
 #TODO: Divide cash equally among cost centers, could be improved to a more realistic distribution.
-            cash_per_cc = total_cash / num_cc
+            cc_by_type = {
+                "OP": [],
+                "CO": [],
+                "AD": []
+            }
+            for cc_id in company_cost_centers:
+                cc_type = cc_id.split("_")[1][:2]  # OP, CO, AD
+                cc_by_type[cc_type].append(cc_id)
 
-            for cost_center_id in company_cost_centers:
-                fact_rows.append({
-                    "date": cal.calendar_date,
-                    "fiscal_year": cal.fiscal_year,
-                    "fiscal_month": cal.fiscal_month,
-                    "scenario": scenario,
-                    "holding_id": HOLDING_ID,
-                    "company_id": comp.company_id,
-                    "cost_center_id": cost_center_id,
-                    "country_code": comp.country_code,
-                    "cash_currency": comp.company_currency,
-                    "cash_amount": round(cash_per_cc, 2),
-                })
+            for cc_type, cc_list in cc_by_type.items():
+                if not cc_list:
+                    continue
+                type_total_cash = total_cash * COST_CENTER_WEIGHTS[cc_type]
+                cash_per_cc = total_cash / num_cc
+
+                for cost_center_id in company_cost_centers:
+                    fact_rows.append({
+                        "date": cal.calendar_date,
+                        "fiscal_year": cal.fiscal_year,
+                        "fiscal_month": cal.fiscal_month,
+                        "scenario": scenario,
+                        "holding_id": HOLDING_ID,
+                        "company_id": comp.company_id,
+                        "cost_center_id": cost_center_id,
+                        "country_code": comp.country_code,
+                        "cash_currency": comp.company_currency,
+                        "cash_amount": round(cash_per_cc, 2),
+                    })
 
 cash_position_df = pd.DataFrame(fact_rows)
 
