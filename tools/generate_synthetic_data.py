@@ -12,8 +12,7 @@ SEED = 42
 np.random.seed(SEED)
 
 MONTHS = 36
-END_DATE = date.today() - relativedelta(months=-1*(MONTHS + 1))
-START_DATE = END_DATE.replace(day=1)
+START_DATE = (date.today() + relativedelta(months=-1*(MONTHS + 1))).replace(day=1)
 COUNTRIES = {
     "BR": {"name": "Brazil", "currency": "BRL", "region": "LATAM"},
     "US": {"name": "United States", "currency": "USD", "region": "NA"},
@@ -40,7 +39,6 @@ COST_CENTER_TYPES = {
 # ======================================================
 
 dates = [START_DATE + relativedelta(months=i) for i in range(MONTHS)]
-
 calendar_df = pd.DataFrame({
     "calendar_date": dates,
     "fiscal_year": [d.year for d in dates],

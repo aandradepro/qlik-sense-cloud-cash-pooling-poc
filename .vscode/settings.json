@@ -1,4 +1,8 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:venv",
-    "python-envs.pythonProjects": []
+  "python.defaultInterpreterPath": "D:/Dev/miniconda3/envs/qlik-sense-cloud-cash-pooling-poc/python.exe",
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda",
+  "python-envs.pythonProjects": []
 }
