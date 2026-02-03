@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from datetime import datetime, date, timedelta
+from datetime import date
 from dateutil.relativedelta import relativedelta
 
 # ======================================================
@@ -165,9 +165,23 @@ for _, comp in company_df.iterrows():
     company_cost_centers = cost_centers_by_company[comp.company_id]
     num_cc = len(company_cost_centers)
 
-    for _, cal in calendar_df.iterrows():
+    for t, (_, cal) in enumerate(calendar_df.iterrows()):
+        month = cal["fiscal_month"]
+        seasonality = 1 + 0.1 * np.sin(2 * np.pi * month / 12)
+        trend = 1 + (t * 0.002)
+        noise = np.random.normal(loc=1.0, scale=0.04)
+        time_factor = seasonality * trend * noise
+        pooling_gain = np.random.uniform(1.05, 1.25)
         for scenario in SCENARIOS:
-            adjustment = 1.0 if scenario == "PRE" else np.random.uniform(1.05, 1.25)
+            if scenario == "PRE":
+                adjustment = time_factor
+            else:
+                adjustment = time_factor * pooling_gain
+#            adjustment = 1.0 if scenario == "PRE" else np.random.uniform(1.05, 1.25)
+            if scenario == "PRE":
+                adjustment = np.random.normal(1.0, 0.015)
+            else:
+                adjustment = np.random.uniform(1.05, 1.25)
             total_cash = base_cash * adjustment
 #TODO: Divide cash equally among cost centers, could be improved to a more realistic distribution.
             cc_by_type = {
@@ -183,9 +197,14 @@ for _, comp in company_df.iterrows():
                 if not cc_list:
                     continue
                 type_total_cash = total_cash * COST_CENTER_WEIGHTS[cc_type]
-                cash_per_cc = total_cash / num_cc
+                num_cc_type = len(cc_list)
+                raw_weights = np.random.random(num_cc_type)
+                weights = raw_weights / raw_weights.sum()
+                cash_per_cc = type_total_cash * weights
+#                cash_per_cc = total_cash / num_cc
 
-                for cost_center_id in company_cost_centers:
+#                for cost_center_id in company_cost_centers:
+                for cost_center_id, cash_amount in zip(cc_list, cash_per_cc):                    
                     fact_rows.append({
                         "date": cal.calendar_date,
                         "fiscal_year": cal.fiscal_year,
@@ -196,7 +215,7 @@ for _, comp in company_df.iterrows():
                         "cost_center_id": cost_center_id,
                         "country_code": comp.country_code,
                         "cash_currency": comp.company_currency,
-                        "cash_amount": round(cash_per_cc, 2),
+                        "cash_amount": round(float(cash_amount), 2),
                     })
 
 cash_position_df = pd.DataFrame(fact_rows)
