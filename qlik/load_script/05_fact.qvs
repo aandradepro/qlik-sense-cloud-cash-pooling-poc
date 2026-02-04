@@ -1,0 +1,22 @@
+NOCONCATENATE
+FCT_CashPosition:
+LOAD
+    date,
+    company_id,
+    cost_center_id,
+    scenario,
+    cash_currency,
+    cash_amount,
+// FX applied
+    ApplyMap(
+        'FX_MAP',
+        cash_currency & '|' & reporting_currency & '|' & date,
+        Null()
+    ) AS fx_rate_applied,
+// amount converted to reporting
+	ApplyMap(
+        'FX_MAP',
+        cash_currency & '|' & reporting_currency & '|' & date(date),
+        1
+    ) * cash_amount AS reporting_amount
+RESIDENT STG_CashPosition;

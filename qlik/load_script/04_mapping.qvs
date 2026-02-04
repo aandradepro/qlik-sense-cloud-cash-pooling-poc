@@ -1,0 +1,12 @@
+FX_MAP:
+Mapping
+LOAD
+    from_currency & '|' & to_currency & '|' & date(rate_date) AS FXKey,
+    exchange_rate
+RESIDENT STG_ExchangeRate;
+
+LEFT JOIN (STG_CashPosition)
+LOAD
+    holding_id,
+    reporting_currency
+RESIDENT DIM_Holding;

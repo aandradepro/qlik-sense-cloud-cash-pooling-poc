@@ -1,0 +1,7 @@
+DROP TABLE STG_Holding;
+DROP TABLE STG_Country;
+DROP TABLE STG_Company;
+DROP TABLE STG_CostCenter;
+DROP TABLE STG_CashPosition;
+DROP TABLE STG_Currency;
+DROP TABLE STG_ExchangeRate;

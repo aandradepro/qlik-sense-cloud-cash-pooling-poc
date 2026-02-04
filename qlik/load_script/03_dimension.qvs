@@ -1,0 +1,53 @@
+NOCONCATENATE
+DIM_Calendar:
+LOAD DISTINCT
+    date,
+    fiscal_year,
+    fiscal_month
+RESIDENT STG_CashPosition;
+
+NOCONCATENATE
+DIM_Country:
+LOAD
+    country_code,
+    country_name,
+    region
+RESIDENT STG_Country;
+
+NOCONCATENATE
+DIM_Company:
+LOAD
+    company_id,
+    company_name,
+    holding_id,
+    country_code,
+    company_currency,
+    company_type
+RESIDENT STG_Company;
+
+NOCONCATENATE
+DIM_Holding:
+LOAD
+    holding_id,
+    holding_name,
+    reporting_currency
+RESIDENT STG_Holding;
+
+NOCONCATENATE
+DIM_CostCenter:
+LOAD
+    cost_center_id,
+    cost_center_company_id,
+    cost_center_type,
+    cost_center_name
+RESIDENT STG_CostCenter;
+
+NOCONCATENATE
+ExchangeRate:
+LOAD
+    date(Date#(calendar_date, 'YYYY-MM-DD')) AS rate_date,
+    from_currency,
+    to_currency,
+    fx_rate AS exchange_rate
+FROM [lib://PoCs:DataFiles/exchange_rate.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);

@@ -1,0 +1,66 @@
+STG_Holding:
+LOAD
+    holding_id,
+    holding_name,
+    reporting_currency
+FROM [lib://PoCs:DataFiles/holding.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_Company:
+LOAD
+    company_id,
+    company_name,
+    holding_id,
+    country_code,
+    company_currency,
+    company_type
+FROM [lib://PoCs:DataFiles/company.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_Country:
+LOAD
+    country_code,
+    country_name,
+    region
+FROM [lib://PoCs:DataFiles/country.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_CostCenter:
+LOAD
+    cost_center_id,
+    cost_center_name,
+    cost_center_type,
+    cost_center_company_id
+FROM [lib://PoCs:DataFiles/cost_center.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_Currency:
+LOAD
+    currency_code,
+    currency_name
+FROM [lib://PoCs:DataFiles/currency.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_ExchangeRate:
+LOAD
+    date(Date#(calendar_date, 'YYYY-MM-DD')) AS rate_date,
+    from_currency,
+    to_currency,
+    fx_rate AS exchange_rate
+FROM [lib://PoCs:DataFiles/exchange_rate.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+STG_CashPosition:
+LOAD
+    date(Date#(date, 'YYYY-MM-DD'))      AS date,
+    fiscal_year,
+    fiscal_month,
+    scenario,
+    holding_id,
+    company_id,
+    cost_center_id,
+    country_code,
+    cash_currency,
+    cash_amount
+FROM [lib://PoCs:DataFiles/cash_position.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
